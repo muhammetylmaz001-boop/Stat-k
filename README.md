@@ -1,0 +1,1 @@
+STATİK Asansör Yönetim Uygulaması
