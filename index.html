@@ -82,7 +82,44 @@ function nav(k,i,t){return `<button class="${active===k?'active':''}" onclick="g
 function render(){document.body.innerHTML=`<div class="wrap"><div class="top"><div><div class="brand">ST<span>ATİK</span></div><div class="sub">ASANSÖR YÖNETİM UYGULAMASI</div></div><button class="avatar" aria-label="Profil menüsü" onclick="profileMenu()">👤</button></div><div id="view"></div></div><div class="nav"><div class="navin">${nav('home','⌂','Ana Sayfa')}${nav('buildings','🏢','Binalar')}${nav('elevators','🛗','Asansörler')}${nav('faults','⚠️','Arızalar')}${nav('maintenance','🔧','Bakım')}</div></div>`;renderView()}
 function renderView(){const v=$('#view');if(active==='home')home(v);if(active==='buildings')buildings(v);if(active==='elevators')elevators(v);if(active==='faults')faults(v);if(active==='maintenance')maintenance(v)}
 function home(v){const open=data.faults.filter(x=>!['RESOLVED','CLOSED'].includes(x.status)).length;v.innerHTML=`<div class="card hero"><h1>Merhaba, ${esc(profile?.full_name||'Yönetici')} 👋</h1><p class="muted">Asansörlerinizi tek yerden takip edin.</p><div class="btns"><button class="btn primary" onclick="go('buildings')">🏢 Binalar</button><button class="btn" onclick="go('faults')">⚠️ Arıza</button></div></div><div class="grid"><div class="card stat"><div>🏢</div><div class="num">${data.buildings.length}</div><div class="muted">Bina</div></div><div class="card stat"><div>🛗</div><div class="num">${data.elevators.length}</div><div class="muted">Asansör</div></div><div class="card stat"><div>🔧</div><div class="num">${data.maintenances.filter(x=>x.status!=='COMPLETED').length}</div><div class="muted">Bekleyen bakım</div></div><div class="card stat"><div>⚠️</div><div class="num">${open}</div><div class="muted">Açık arıza</div></div></div>`}
-function buildings(v){v.innerHTML=`<div class="row"><h2>Binalar</h2><button class="btn primary" onclick="modal('b')">+ Bina</button></div><div class="list">${data.buildings.map(b=>`<div class="item"><b>🏢 ${esc(b.name)}</b><div class="muted">${esc(b.address||'Adres yok')}</div><div class="muted">${esc(b.manager_name||'')} ${esc(b.manager_phone||'')}</div></div>`).join('')||'<div class="card muted">Henüz bina yok.</div>'}</div>`}
+function buildings(v){v.innerHTML=`<div class="row"><div><h2>🏢 Binalar</h2><div class="muted">Kayıtlı binalarınızı ve yöneticilerini yönetin.</div></div><button class="btn primary" onclick="modal('b')">+ Bina Ekle</button></div><div class="grid">${data.buildings.map(b=>`<div class="card"><h3>🏢 ${esc(b.name)}</h3><div class="profile-line"><span class="muted">📍 Adres</span><b>${esc(b.address||'Adres belirtilmemiş')}</b></div><div class="profile-line"><span class="muted">👤 Yönetici</span><b>${esc(b.manager_name||'Belirtilmemiş')}</b></div><div class="profile-line"><span class="muted">📞 Telefon</span><b>${esc(b.manager_phone||'Belirtilmemiş')}</b></div><div class="profile-line"><span class="muted">🛗 Asansör</span><b>${data.elevators.filter(e=>e.building_id===b.id).length} adet</b></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn" onclick="editB('${b.id}')">✏️ Düzenle</button></div></div>`).join('')||`<div class="card muted"><h3>🏢 Henüz bina yok</h3><p>İlk binanızı eklemek için yukarıdaki <b>+ Bina Ekle</b> butonuna dokunun.</p></div>`}</div>`}
+function editB(id){
+  const b=data.buildings.find(x=>x.id===id);
+  if(!b)return;
+
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal show" id="modal"><div class="sheet">
+  <h2>✏️ Bina Düzenle</h2>
+  <div class="field"><label>Bina adı</label><input id="ebn" value="${esc(b.name||'')}"></div>
+  <div class="field"><label>Adres</label><input id="eba" value="${esc(b.address||'')}"></div>
+  <div class="field"><label>Yönetici</label><input id="ebm" value="${esc(b.manager_name||'')}"></div>
+  <div class="field"><label>Telefon</label><input id="ebp" value="${esc(b.manager_phone||'')}"></div>
+  <button class="btn primary" style="width:100%" onclick="updateB('${id}')">💾 Değişiklikleri Kaydet</button>
+  <button class="btn" style="width:100%;margin-top:8px" onclick="closeM()">Kapat</button>
+  </div></div>`);
+}
+async function updateB(id){
+  const name=$('#ebn').value.trim();
+  const address=$('#eba').value.trim();
+  const manager=$('#ebm').value.trim();
+  const phone=$('#ebp').value.trim();
+
+  if(!name)return alert('Lütfen bina adını girin.');
+  if(!address)return alert('Lütfen bina adresini girin.');
+
+  const r=await sb.from('buildings').update({
+    name:name,
+    address:address,
+    manager_name:manager,
+    manager_phone:phone
+  }).eq('id',id).eq('company_id',profile.company_id);
+
+  if(r.error)return alert('Bina güncellenemedi:\n'+r.error.message);
+
+  closeM();
+  await load();
+  render();
+  alert('Bina bilgileri güncellendi.');
+}
 function elevators(v){v.innerHTML=`<div class="row"><h2>Asansörler</h2><button class="btn primary" onclick="modal('e')">+ Asansör</button></div><div class="list">${data.elevators.map(e=>`<div class="item" style="cursor:pointer" onclick="showElevator('${e.id}')"><b>🛗 ${esc(e.name)}</b><div class="muted">${esc(e.buildings?.name||'')} • ${esc(e.serial_number||'')}</div><div class="muted">${esc(e.model||'')} • ${e.floors||'-'} durak • ${e.capacity||'-'} kg</div><div class="muted" style="margin-top:8px">Detayları görmek için dokun →</div></div>`).join('')||'<div class="card muted">Henüz asansör yok.</div>'}</div>`}
 function showElevator(id){const e=data.elevators.find(x=>x.id===id);if(!e)return;selectedElevator=e;document.body.insertAdjacentHTML('beforeend',`<div class="modal show" id="elevatorModal"><div class="sheet"><div class="row"><h2>🛗 Asansör Detayı</h2><button class="btn" onclick="closeElevator()">✕</button></div><div class="card"><h3>${esc(e.name||'Asansör')}</h3><div class="profile-line"><span class="muted">Bina</span><br>${esc(e.buildings?.name||'-')}</div><div class="profile-line"><span class="muted">Seri No</span><br>${esc(e.serial_number||'-')}</div><div class="profile-line"><span class="muted">Model</span><br>${esc(e.model||'-')}</div><div class="profile-line"><span class="muted">Durak</span><br>${e.floors||'-'}</div><div class="profile-line"><span class="muted">Kapasite</span><br>${e.capacity||'-'} kg</div><div class="profile-line"><span class="muted">QR Kodu</span><br>${esc(e.qr_code||'-')}</div></div><div class="btns"><button class="btn primary" onclick="alert('Arıza bildirimi sonraki adımda eklenecek.')">⚠️ Arıza Bildir</button><button class="btn" onclick="alert('Bakım geçmişi sonraki adımda eklenecek.')">🔧 Bakım Geçmişi</button></div><button class="btn" style="width:100%;margin-top:10px" onclick="closeElevator()">Kapat</button></div></div>`)}function closeElevator(){$('#elevatorModal')?.remove();selectedElevator=null}
 function faults(v){v.innerHTML=`<div class="row"><h2>Arızalar</h2><button class="btn primary" onclick="modal('f')">+ Arıza</button></div><div class="list">${data.faults.map(f=>`<div class="item"><div class="row"><b>⚠️ ${esc(f.title)}</b><span class="muted">${esc(f.status)}</span></div><div class="muted">${esc(f.elevators?.buildings?.name||'')} • ${esc(f.elevators?.serial_number||'')}</div><div>${esc(f.description||'')}</div></div>`).join('')||'<div class="card muted">Henüz arıza yok.</div>'}</div>`}
