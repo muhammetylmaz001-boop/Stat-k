@@ -60,6 +60,14 @@ async function resetPassword(){
   await sb.auth.signOut();
   history.replaceState({},document.title,location.pathname);
   renderLogin();
+}async function sendPasswordReset(){
+  const email=$('#email').value.trim();
+  if(!email)return alert('Önce e-posta adresini yaz.');
+  const r=await sb.auth.resetPasswordForEmail(email,{
+    redirectTo:location.origin+location.pathname
+  });
+  if(r.error)return alert('Şifre sıfırlama gönderilemedi:\n'+r.error.message);
+  alert('Şifre sıfırlama bağlantısı e-posta adresine gönderildi.');
 }
 async function boot(){const r=await sb.from('profiles').select('*').eq('id',session.user.id).maybeSingle();if(r.error)return renderError(r.error.message);profile=r.data;if(!profile||!profile.company_id){return renderCompanySetup()}await load();render()}
 async function load(){const [b,e,f,m]=await Promise.all([sb.from('buildings').select('*').order('created_at',{ascending:false}),sb.from('elevators').select('*, buildings(name)').order('created_at',{ascending:false}),sb.from('faults').select('*, elevators(serial_number, buildings(name))').order('created_at',{ascending:false}),sb.from('maintenances').select('*, elevators(serial_number, buildings(name))').order('planned_date',{ascending:true})]);data={buildings:b.data||[],elevators:e.data||[],faults:f.data||[],maintenances:m.data||[]}}
