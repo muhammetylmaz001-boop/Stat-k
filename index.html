@@ -174,7 +174,48 @@ ${data.elevators.map(e=>`
 function showElevator(id){const e=data.elevators.find(x=>x.id===id);if(!e)return;selectedElevator=e;document.body.insertAdjacentHTML('beforeend',`<div class="modal show" id="elevatorModal"><div class="sheet"><div class="row"><h2>🛗 Asansör Detayı</h2><button class="btn" onclick="closeElevator()">✕</button></div><div class="card"><h3>${esc(e.name||'Asansör')}</h3><div class="profile-line"><span class="muted">Bina</span><br>${esc(e.buildings?.name||'-')}</div><div class="profile-line"><span class="muted">Seri No</span><br>${esc(e.serial_number||'-')}</div><div class="profile-line"><span class="muted">Model</span><br>${esc(e.model||'-')}</div><div class="profile-line"><span class="muted">Durak</span><br>${e.floors||'-'}</div><div class="profile-line"><span class="muted">Kapasite</span><br>${e.capacity||'-'} kg</div><div class="profile-line"><span class="muted">QR Kodu</span><br>${esc(e.qr_code||'-')}</div></div><div class="btns"><button class="btn primary" onclick="alert('Arıza bildirimi sonraki adımda eklenecek.')">⚠️ Arıza Bildir</button><button class="btn" onclick="alert('Bakım geçmişi sonraki adımda eklenecek.')">🔧 Bakım Geçmişi</button></div><button class="btn" style="width:100%;margin-top:10px" onclick="closeElevator()">Kapat</button></div></div>`)}function closeElevator(){$('#elevatorModal')?.remove();selectedElevator=null}
 function faults(v){v.innerHTML=`<div class="row"><h2>Arızalar</h2><button class="btn primary" onclick="modal('f')">+ Arıza</button></div><div class="list">${data.faults.map(f=>`<div class="item"><div class="row"><b>⚠️ ${esc(f.title)}</b><span class="muted">${esc(f.status)}</span></div><div class="muted">${esc(f.elevators?.buildings?.name||'')} • ${esc(f.elevators?.serial_number||'')}</div><div>${esc(f.description||'')}</div></div>`).join('')||'<div class="card muted">Henüz arıza yok.</div>'}</div>`}
 function maintenance(v){v.innerHTML=`<div class="row"><h2>Bakım</h2><button class="btn primary" onclick="modal('m')">+ Bakım</button></div><div class="list">${data.maintenances.map(m=>`<div class="item"><div class="row"><b>🔧 ${esc(m.elevators?.serial_number||'')}</b><span class="muted">${esc(m.status)}</span></div><div class="muted">${esc(m.elevators?.buildings?.name||'')} • ${m.planned_date||''}</div><div>${esc(m.notes||'')}</div></div>`).join('')||'<div class="card muted">Henüz bakım yok.</div>'}</div>`}
-function modal(t){let h='';if(t==='b')h=`<h2>Yeni Bina</h2><div class="field"><label>Bina adı</label><input id="n"></div><div class="field"><label>Adres</label><input id="a"></div><div class="field"><label>Yönetici</label><input id="mn"></div><div class="field"><label>Telefon</label><input id="mp"></div><button class="btn primary" onclick="saveB()">Kaydet</button>`;if(t==='e')h=`<h2>Yeni Asansör</h2><div class="field"><label>Bina</label><select id="bid">${data.buildings.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('')}</select></div><div class="field"><label>Asansör adı</label><input id="en"></div><div class="field"><label>Seri no</label><input id="sn"></div><div class="field"><label>Model</label><input id="mo"></div><div class="field"><label>Durak</label><input id="fl" type="number"></div><div class="field"><label>Kapasite</label><input id="cp" type="number"></div><button class="btn primary" onclick="saveE()">Kaydet</button>`;if(t==='f')h=`<h2>Arıza Bildir</h2><div class="field"><label>Asansör</label><select id="eid">${data.elevators.map(e=>`<option value="${e.id}">${esc(e.name)} • ${esc(e.serial_number||'')}</option>`).join('')}</select></div><div class="field"><label>Başlık</label><input id="ft"></div><div class="field"><label>Açıklama</label><textarea id="fd"></textarea></div><button class="btn primary" onclick="saveF()">Kaydet</button>`;if(t==='m')h=`<h2>Bakım Planla</h2><div class="field"><label>Asansör</label><select id="eid">${data.elevators.map(e=>`<option value="${e.id}">${esc(e.name)} • ${esc(e.serial_number||'')}</option>`).join('')}</select></div><div class="field"><label>Tarih</label><input id="pd" type="date"></div><div class="field"><label>Not</label><textarea id="pn"></textarea></div><button class="btn primary" onclick="saveM()">Kaydet</button>`;document.body.insertAdjacentHTML('beforeend',`<div class="modal show" id="modal"><div class="sheet">${h}<button class="btn" style="width:100%;margin-top:8px" onclick="closeM()">Kapat</button></div></div>`)}function closeM(){$('#modal')?.remove()}
+function modal(t){let h='';if(t==='b')h=`<h2>Yeni Bina</h2><div class="field"><label>Bina adı</label><input id="n"></div><div class="field"><label>Adres</label><input id="a"></div><div class="field"><label>Yönetici</label><input id="mn"></div><div class="field"><label>Telefon</label><input id="mp"></div><button class="btn primary" onclick="saveB()">Kaydet</button>`;if(t==='e')h=`
+<h2>🛗 Yeni Asansör</h2>
+<div class="muted" style="margin-bottom:14px">
+  Asansörün teknik bilgilerini eksiksiz girin.
+</div>
+
+<div class="field">
+<label>🏢 Bina *</label>
+<select id="bid">
+${data.buildings.map(b=>`
+<option value="${b.id}">${esc(b.name)}</option>
+`).join('')}
+</select>
+</div>
+
+<div class="field">
+<label>🛗 Asansör adı *</label>
+<input id="en" type="text" placeholder="Örn: Ana Asansör">
+</div>
+
+<div class="field">
+<label>🔢 Seri no</label>
+<input id="sn" type="text" placeholder="Asansör seri numarası">
+</div>
+
+<div class="field">
+<label>⚙️ Model</label>
+<input id="mo" type="text" placeholder="Örn: 2015">
+</div>
+
+<div class="field">
+<label>🔢 Durak sayısı</label>
+<input id="fl" type="number" min="1" placeholder="Örn: 10">
+</div>
+
+<div class="field">
+<label>⚖️ Kapasite (kg)</label>
+<input id="cp" type="number" min="1" placeholder="Örn: 800">
+</div>
+
+<button class="btn primary" style="width:100%;margin-top:8px" onclick="saveE()">🛗 Asansörü Kaydet</button>
+`;if(t==='f')h=`<h2>Arıza Bildir</h2><div class="field"><label>Asansör</label><select id="eid">${data.elevators.map(e=>`<option value="${e.id}">${esc(e.name)} • ${esc(e.serial_number||'')}</option>`).join('')}</select></div><div class="field"><label>Başlık</label><input id="ft"></div><div class="field"><label>Açıklama</label><textarea id="fd"></textarea></div><button class="btn primary" onclick="saveF()">Kaydet</button>`;if(t==='m')h=`<h2>Bakım Planla</h2><div class="field"><label>Asansör</label><select id="eid">${data.elevators.map(e=>`<option value="${e.id}">${esc(e.name)} • ${esc(e.serial_number||'')}</option>`).join('')}</select></div><div class="field"><label>Tarih</label><input id="pd" type="date"></div><div class="field"><label>Not</label><textarea id="pn"></textarea></div><button class="btn primary" onclick="saveM()">Kaydet</button>`;document.body.insertAdjacentHTML('beforeend',`<div class="modal show" id="modal"><div class="sheet">${h}<button class="btn" style="width:100%;margin-top:8px" onclick="closeM()">Kapat</button></div></div>`)}function closeM(){$('#modal')?.remove()}
 async function saveB(){const r=await sb.from('buildings').insert({company_id:profile.company_id,name:$('#n').value,address:$('#a').value,manager_name:$('#mn').value,manager_phone:$('#mp').value});if(r.error)alert(r.error.message);else{closeM();await load();render()}}
 async function saveE(){const r=await sb.from('elevators').insert({company_id:profile.company_id,building_id:$('#bid').value,name:$('#en').value,serial_number:$('#sn').value,model:$('#mo').value,floors:+$('#fl').value||null,capacity:+$('#cp').value||null,qr_code:crypto.randomUUID()});if(r.error)alert(r.error.message);else{closeM();await load();render()}}
 async function saveF(){const r=await sb.from('faults').insert({company_id:profile.company_id,elevator_id:$('#eid').value,reported_by:session.user.id,title:$('#ft').value,description:$('#fd').value});if(r.error)alert(r.error.message);else{closeM();await load();render()}}
